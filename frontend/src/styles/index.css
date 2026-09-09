@@ -1,0 +1,292 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-bg text-text antialiased;
+  font-feature-settings: "cv02", "cv03", "cv11";
+  font-size: 15px;
+}
+
+::selection {
+  background: rgba(132, 138, 242, 0.3);
+  color: #fff;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Atmosphere — the video lives BEHIND everything. The application's
+   functional surfaces below are SOLID; only the page background and the
+   hero take atmosphere from the video.
+   ───────────────────────────────────────────────────────────────────────── */
+.app-atmosphere {
+  background:
+    radial-gradient(1000px 560px at 14% -10%, rgba(132, 138, 242, 0.05), transparent 60%),
+    radial-gradient(820px 520px at 92% 6%, rgba(240, 68, 92, 0.03), transparent 55%);
+}
+
+.video-bg-fallback {
+  background-color: #080a0f;
+  background-image:
+    radial-gradient(1100px 640px at 18% -10%, rgba(132, 138, 242, 0.09), transparent 60%),
+    radial-gradient(900px 560px at 85% 110%, rgba(240, 68, 92, 0.06), transparent 55%),
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: auto, auto, 72px 72px, 72px 72px;
+}
+
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Typography hierarchy
+   Brand → eyebrow → page title → description → section title → data → meta
+   Manrope, tight tracking on display sizes, warm white. Uppercase only for
+   tiny labels, eyebrows and metadata.
+   ───────────────────────────────────────────────────────────────────────── */
+.eyebrow {
+  @apply text-2xs font-semibold uppercase tracking-widest2 text-muted;
+}
+
+.h1 {
+  @apply text-[1.875rem] font-bold leading-[1.12] tracking-[-0.02em] text-white md:text-[2.25rem];
+}
+
+.lede {
+  @apply mt-2.5 max-w-[44rem] text-[15px] leading-relaxed text-textdim;
+}
+
+.section-head {
+  @apply mb-6 flex flex-wrap items-baseline justify-between gap-x-8 gap-y-1.5;
+}
+
+.section-title {
+  @apply text-[19px] font-semibold tracking-[-0.01em] text-white;
+}
+
+.section-sub {
+  @apply text-[13px] text-muted;
+}
+
+.metric-value {
+  @apply font-bold tracking-[-0.02em] text-white tabular-nums;
+}
+
+.meta-row {
+  @apply flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Surfaces — SOLID, deep, grounded. Panels never frost over the video.
+   ───────────────────────────────────────────────────────────────────────── */
+.panel {
+  @apply rounded-[14px] border border-white/[0.055] bg-panel shadow-panel;
+}
+
+.panel-flat {
+  @apply rounded-[14px] border border-white/[0.04] bg-surface;
+}
+
+.panel-hover {
+  @apply transition-colors duration-200 hover:border-white/[0.1] hover:bg-elevated;
+}
+
+/* Important result surface — the elevated, most-present panel. */
+.panel-em {
+  @apply rounded-[14px] border border-white/[0.08] bg-elevated shadow-card;
+}
+
+.card {
+  @apply panel;
+}
+.card-hover {
+  @apply panel-hover;
+}
+
+.hairline {
+  @apply h-px w-full bg-white/[0.05];
+}
+
+.chip {
+  @apply inline-flex items-center gap-1 rounded-md border border-white/[0.07] bg-surface px-2 py-0.5 font-mono text-2xs text-textdim;
+}
+
+.kbd {
+  @apply rounded border border-white/10 bg-surface px-1.5 py-0.5 font-mono text-2xs text-textdim;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Buttons — one premium system. Primary = warm light contrast on graphite;
+   secondary = solid dark panel; tertiary = quiet text action.
+   Moderate radii, complete state coverage.
+   ───────────────────────────────────────────────────────────────────────── */
+.btn {
+  @apply inline-flex h-10 select-none items-center justify-center gap-2 rounded-[10px] px-4 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:pointer-events-none disabled:opacity-40 active:scale-[0.99];
+}
+
+.btn-primary {
+  @apply btn bg-[#F5F5F2] text-[#0B0D12] hover:bg-white;
+}
+
+.btn-secondary {
+  @apply btn border border-white/[0.08] bg-elevated text-text hover:border-white/[0.16] hover:bg-[#232937];
+}
+
+.btn-ghost {
+  @apply btn text-textdim hover:bg-white/[0.05] hover:text-white;
+}
+
+.btn-danger {
+  @apply btn border border-alert/25 bg-alert/[0.12] text-alert hover:border-alert/40 hover:bg-alert/[0.18];
+}
+
+.btn-sm {
+  @apply h-8 rounded-lg px-3 text-[13px];
+}
+
+.btn-lg {
+  @apply h-11 px-5 text-[15px];
+}
+
+/* Hero CTA — sits on the video: solid warm white, dark text. */
+.btn-hero {
+  @apply inline-flex h-12 select-none items-center justify-center gap-2.5 rounded-[12px] bg-[#F5F5F2] px-8 text-[13px] font-bold uppercase tracking-[0.18em] text-[#0B0D12] shadow-[0_18px_50px_-20px_rgba(0,0,0,0.85)] transition-all duration-200 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/0 active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50;
+}
+
+/* Secondary hero action on video — quiet hairline. */
+.btn-hero-ghost {
+  @apply inline-flex h-12 select-none items-center justify-center gap-2.5 rounded-[12px] border border-white/20 bg-white/[0.04] px-7 text-[13px] font-semibold uppercase tracking-[0.18em] text-white/85 backdrop-blur-sm transition-all duration-200 hover:border-white/35 hover:bg-white/[0.08] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:pointer-events-none disabled:opacity-50;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Forms — solid controls: dark backgrounds, clear labels, subtle focus.
+   ───────────────────────────────────────────────────────────────────────── */
+.form-field {
+  @apply mb-5;
+}
+
+.label {
+  @apply mb-1.5 block text-[14px] font-medium text-text/90;
+}
+
+.label-sm {
+  @apply text-2xs font-semibold uppercase tracking-[0.14em] text-muted;
+}
+
+.input {
+  @apply w-full rounded-[10px] border border-white/[0.08] bg-surface px-3.5 text-[15px] text-white placeholder:text-muted/70 transition-colors duration-150 focus:border-accent/50 focus:bg-[#141821] focus:outline-none focus:ring-2 focus:ring-accent/[0.18] disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.input[type="date"],
+.input[type="datetime-local"],
+select.input {
+  @apply text-textdim;
+}
+
+select.input {
+  @apply cursor-pointer appearance-none bg-no-repeat pr-9;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23747B87' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-position: right 0.75rem center;
+}
+
+.field-error {
+  @apply mt-1.5 text-[13px] text-alert;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Badges — compact, icon + text, colour never alone.
+   ───────────────────────────────────────────────────────────────────────── */
+.badge {
+  @apply inline-flex h-6 items-center gap-1.5 rounded-md px-2 text-2xs font-semibold;
+}
+
+.risk-low {
+  @apply border border-safe/25 bg-safe/10 text-safe;
+}
+.risk-medium {
+  @apply border border-medium/25 bg-medium/10 text-medium;
+}
+.risk-high {
+  @apply border border-alert/25 bg-alert/10 text-alert;
+}
+
+.risk-dot {
+  @apply h-1.5 w-1.5 rounded-full bg-current;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Tables — financial data terminal: quiet headers, comfortable rows,
+   aligned numbers, hairline separators, no boxed cells.
+   ───────────────────────────────────────────────────────────────────────── */
+.data-table {
+  @apply w-full border-collapse text-left;
+}
+
+.data-table thead th {
+  @apply border-b border-white/[0.07] pb-3 text-2xs font-semibold uppercase tracking-[0.14em] text-muted;
+}
+
+.data-table tbody td {
+  @apply border-b border-white/[0.045] py-4 align-middle text-sm;
+}
+
+.data-table tbody tr {
+  @apply transition-colors duration-150 hover:bg-white/[0.025];
+}
+
+.data-table tbody tr:last-child td {
+  @apply border-b-0;
+}
+
+.data-table .num {
+  @apply font-mono tabular-nums;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   States
+   ───────────────────────────────────────────────────────────────────────── */
+.skeleton {
+  @apply animate-pulse rounded-lg bg-white/[0.05];
+}
+
+.blockquote-note {
+  @apply rounded-[10px] border border-white/[0.06] bg-surface px-4 py-3.5 text-[13px] leading-relaxed text-textdim;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.18);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Setup: install backend + frontend deps",
+      "type": "shell",
+      "command": "python -m venv .venv && . .venv/bin/activate && pip install --upgrade pip && pip install -r backend/requirements.txt && cd frontend && npm install",
+      "problemMatcher": [],
+      "detail": "One-time: creates .venv, installs Python + Node deps (Windows: use .venv\\Scripts\\activate)"
+    },
+    {
+      "label": "Backend: apply migrations",
+      "type": "shell",
+      "command": "cd backend && . ../.venv/bin/activate && alembic upgrade head",
+      "problemMatcher": [],
+      "detail": "Runs Alembic migrations against DATABASE_URL (postgres or sqlite)"
+    },
+    {
+      "label": "Backend: seed demo users",
+      "type": "shell",
+      "command": "cd backend && . ../.venv/bin/activate && python -m app.db.seed",
+      "problemMatcher": [],
+      "detail": "Creates analyst@example.com / admin@example.com (password: Password123!)"
+    },
+    {
+      "label": "Backend: train the model",
+      "type": "shell",
+      "command": "cd backend && . ../.venv/bin/activate && python train_model.py --target pr_auc",
+      "problemMatcher": [],
+      "detail": "Requires data/raw/creditcard.csv (or run with --fake for synthetic demo)"
+    },
+    {
+      "label": "Backend: run API (port 8000)",
+      "type": "shell",
+      "command": "cd backend && . ../.venv/bin/activate && uvicorn app.main:app --reload --port 8000",
+      "isBackground": true,
+      "problemMatcher": [],
+      "detail": "FastAPI + Swagger at http://localhost:8000/docs"
+    },
+    {
+      "label": "Frontend: run Vite (port 5173)",
+      "type": "shell",
+      "command": "cd frontend && npm run dev",
+      "isBackground": true,
+      "problemMatcher": [],
+      "detail": "React app at http://localhost:5173"
+    },
+    {
+      "label": "Docker: full stack up",
+      "type": "shell",
+      "command": "docker compose up --build -d",
+      "problemMatcher": [],
+      "detail": "postgres + redis + api + worker + frontend (needs Docker Desktop)"
+    },
+    {
+      "label": "Tests: backend + frontend",
+      "type": "shell",
+      "command": "cd backend && . ../.venv/bin/activate && pytest -q && cd ../frontend && npm run test",
+      "problemMatcher": []
+    }
+  ]
+}

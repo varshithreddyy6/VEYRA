@@ -1,0 +1,143 @@
+name: credit-card-fraud-detection-system
+
+# ══════════════════════════════════════════════════════════════════════════
+#  CREDIT CARD FRAUD DETECTION SYSTEM — local development stack
+#
+#  Usage:
+#    1. cp .env.example .env            (defaults already match this file)
+#    2. docker compose up --build -d
+#    3. docker compose exec api alembic upgrade head
+#    4. docker compose exec api python -m app.db.seed
+#    5. Open http://localhost:8080
+#
+#  The API container trains a model on startup if no artifact exists and a
+#  dataset is present (or auto-downloadable). See backend/app/core/config.py.
+#
+#  This stack is for DEVELOPMENT. Real deployments need secrets, TLS,
+#  restricted CORS and least-privilege database roles.
+# ══════════════════════════════════════════════════════════════════════════
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ccdfs-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: fraud
+      POSTGRES_PASSWORD: fraud_dev_password
+      POSTGRES_DB: fraud_detector
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fraud -d fraud_detector"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [app-net]
+
+  redis:
+    image: redis:7-alpine
+    container_name: ccdfs-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [app-net]
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ccdfs-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://fraud:fraud_dev_password@postgres:5432/fraud_detector
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: ${JWT_SECRET:-local-dev-secret-please-change}
+      JWT_ALGORITHM: HS256
+      JWT_ACCESS_TTL_MIN: ${JWT_ACCESS_TTL_MIN:-30}
+      JWT_REFRESH_TTL_DAYS: ${JWT_REFRESH_TTL_DAYS:-7}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://localhost:5173}
+      ENVIRONMENT: development
+      DEBUG: "false"
+      FP_COST: ${FP_COST:-1.0}
+      FN_COST: ${FN_COST:-5.0}
+      MODEL_VERSION: ${MODEL_VERSION:-}
+      REDIS_URL_CELERY: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    volumes:
+      - artifacts:/app/artifacts
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://localhost:8000/api/v1/health', timeout=5)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    networks: [app-net]
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ccdfs-worker
+    restart: unless-stopped
+    command: celery -A app.workers.celery_app worker -l info -Q batch,default
+    environment:
+      DATABASE_URL: postgresql+psycopg://fraud:fraud_dev_password@postgres:5432/fraud_detector
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: ${JWT_SECRET:-local-dev-secret-please-change}
+      CORS_ORIGINS: http://localhost:8080
+      ENVIRONMENT: development
+    volumes:
+      - artifacts:/app/artifacts
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+    networks: [app-net]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # The browser must reach the API; localhost:8000 is where
+        # docker-compose publishes the API service.
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+    container_name: ccdfs-frontend
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [app-net]
+
+volumes:
+  pgdata:
+  redisdata:
+  artifacts:
+
+networks:
+  app-net:
+    driver: bridge

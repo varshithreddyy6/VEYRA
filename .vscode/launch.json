@@ -1,0 +1,47 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "API: FastAPI (uvicorn, port 8000)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": ["app.main:app", "--reload", "--port", "8000"],
+      "cwd": "${workspaceFolder}/backend",
+      "envFile": "${workspaceFolder}/.env",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "preLaunchTask": "Backend: apply migrations"
+    },
+    {
+      "name": "ML: Train the model (train_model.py)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/backend/train_model.py",
+      "args": ["--target", "pr_auc"],
+      "cwd": "${workspaceFolder}/backend",
+      "envFile": "${workspaceFolder}/.env",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "ML: Train on SYNTHETIC demo data (no dataset needed)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/backend/train_model.py",
+      "args": ["--fake", "--no-tuning", "--no-shap", "--skip-eda"],
+      "cwd": "${workspaceFolder}/backend",
+      "envFile": "${workspaceFolder}/.env",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "Frontend: attach Chrome to Vite (port 5173)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/frontend",
+      "sourceMaps": true
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+# ── CREDIT CARD FRAUD DETECTION SYSTEM — backend dependencies ──────────────
+# Python 3.11+ (developed and CI-tested on 3.13, Docker image uses 3.12)
+
+# Web framework
+fastapi==0.115.8
+uvicorn[standard]==0.34.0
+gunicorn==23.0.0
+
+# Validation / settings
+pydantic==2.10.6
+pydantic-settings==2.7.1
+email-validator==2.2.0
+
+# Database
+SQLAlchemy==2.0.38
+alembic==1.14.1
+psycopg[binary]==3.2.4
+
+# Auth / security
+PyJWT==2.10.1
+pwdlib[argon2]==0.2.1
+python-multipart==0.0.20
+wtforms==3.2.1
+
+# Async HTTP client (tests, internal calls)
+httpx==0.28.1
+
+# Task queue
+celery[redis]==5.4.0
+redis==5.2.1
+
+# Machine learning
+numpy==2.2.2
+pandas==2.2.3
+scikit-learn==1.6.1
+xgboost==2.1.4
+shap==0.46.0
+joblib==1.4.2
+matplotlib==3.10.0
+
+# Utilities
+python-dotenv==1.0.1
+networkx==3.4.2  # pinned: avoids the numpy 2.x incompatibility on 3.12
+
+# Testing
+pytest==8.3.4
+pytest-cov==6.0.0
+scipy==1.15.1
