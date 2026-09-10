@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
+import { ThemeToggle } from "@/components/navigation/ThemeToggle";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, Eye, EyeOff } from "lucide-react";
@@ -29,14 +31,15 @@ export default function Register() {
         password: values.password,
         role: "analyst",
       });
-      navigate("/overview", { replace: true });
+      navigate("/home", { replace: true });
     } catch (err) {
       setServerError(apiErrorMessage(err, "Registration failed"));
     }
   };
 
   return (
-    <div className="app-atmosphere relative flex min-h-screen items-center justify-center px-4 py-10">
+    <div className="auth-shell relative flex min-h-screen items-center justify-center px-4 py-10">
+      <div className="auth-corner"><Link to="/" className="back-home"><ArrowLeft className="h-4 w-4" /> Back</Link><ThemeToggle /></div>
       <div className="relative z-10 w-full max-w-[440px] animate-fadeUp">
         <div className="mb-9 flex flex-col items-center text-center">
           <VeyraMark size={48} />

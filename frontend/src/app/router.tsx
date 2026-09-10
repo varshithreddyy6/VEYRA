@@ -1,9 +1,9 @@
 import { Navigate, Route, Routes, Outlet, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useAuthStore } from "@/lib/auth";
-import { AppShell } from "@/components/layout/AppShell";
-import { VideoBackground, type VideoBackgroundIntensity } from "@/components/layout/VideoBackground";
+import { FeatureShell } from "@/components/layout/FeatureShell";
 import HeroLanding from "@/pages/HeroLanding";
+import Home from "@/pages/Home";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import Overview from "@/pages/Overview";
@@ -16,78 +16,30 @@ import Explainability from "@/pages/Explainability";
 import About from "@/pages/About";
 import { FullScreenLoader } from "@/components/ui/Spinner";
 
-/** Guards the application area: loading state, then redirect to login if anonymous. */
 function ProtectedRoute() {
-  const status = useAuthStore((s) => s.status);
-  const location = useLocation();
+  const status = useAuthStore((s) => s.status); const location = useLocation();
   if (status === "loading") return <FullScreenLoader label="Restoring session…" />;
-  if (status !== "authenticated") {
-    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
-  }
+  if (status !== "authenticated") return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   return <Outlet />;
 }
-
-/**
- * How strongly the background video shows on each page.
- * Landing / auth → strong · data-heavy analytics pages → very subtle.
- */
-const PAGE_INTENSITY: Record<string, VideoBackgroundIntensity> = {
-  "/": "strong", // public hero landing
-  "/login": "strong",
-  "/register": "strong",
-  "/overview": "subdued", // dashboard
-  "/screening": "subdued",
-  "/batch": "subdued",
-  "/alerts": "subdued",
-  "/about": "subdued",
-  "/activity": "subtle",
-  "/model-performance": "subtle",
-  "/explainability": "subtle",
-};
+function Feature({ title, children }: { title: string; children: ReactNode }) { return <FeatureShell title={title}>{children}</FeatureShell>; }
 
 export function AppRouter() {
-  const status = useAuthStore((s) => s.status);
-  const refreshUser = useAuthStore((s) => s.refreshUser);
-  const location = useLocation();
-  const intensity = PAGE_INTENSITY[location.pathname] ?? "subdued";
-
-  useEffect(() => {
-    if (status === "loading") {
-      void refreshUser();
-    }
-  }, [status, refreshUser]);
-
-  return (
-    <>
-      {/* One persistent video background for the whole app — mounted above the
-          router so it survives route changes (no element re-creation). */}
-      <VideoBackground intensity={intensity} />
-
-      {/* Application UI is always above the background layer. */}
-      <div className="relative z-10">
-        <Routes>
-          {/* Public entry experience: premium hero landing, no sidebar */}
-          <Route path="/" element={<HeroLanding />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-
-          {/* Application area: protected, with the existing sidebar shell */}
-          <Route element={<ProtectedRoute />}>
-            <Route element={<AppShell />}>
-              <Route path="/overview" element={<Overview />} />
-              <Route path="/screening" element={<Screening />} />
-              <Route path="/batch" element={<BatchAnalysis />} />
-              <Route path="/activity" element={<Activity />} />
-              <Route path="/alerts" element={<Alerts />} />
-              <Route path="/model-performance" element={<ModelPerformance />} />
-              <Route path="/explainability" element={<Explainability />} />
-              <Route path="/about" element={<About />} />
-            </Route>
-          </Route>
-
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </div>
-    </>
-  );
+  const status = useAuthStore((s) => s.status); const refreshUser = useAuthStore((s) => s.refreshUser);
+  useEffect(() => { if (status === "loading") void refreshUser(); }, [status, refreshUser]);
+  return <Routes>
+    <Route path="/" element={<HeroLanding />} /><Route path="/login" element={<Login />} /><Route path="/register" element={<Register />} />
+    <Route element={<ProtectedRoute />}>
+      <Route path="/home" element={<Home />} />
+      <Route path="/overview" element={<Feature title="Overview"><Overview /></Feature>} />
+      <Route path="/screening" element={<Feature title="Screen Transaction"><Screening /></Feature>} />
+      <Route path="/batch" element={<Feature title="Batch Analysis"><BatchAnalysis /></Feature>} />
+      <Route path="/activity" element={<Feature title="Activity"><Activity /></Feature>} />
+      <Route path="/alerts" element={<Feature title="Alerts"><Alerts /></Feature>} />
+      <Route path="/model-performance" element={<Feature title="Model Performance"><ModelPerformance /></Feature>} />
+      <Route path="/explainability" element={<Feature title="Explainability"><Explainability /></Feature>} />
+      <Route path="/about" element={<Feature title="About VEYRA"><About /></Feature>} />
+    </Route>
+    <Route path="*" element={<Navigate to="/" replace />} />
+  </Routes>;
 }

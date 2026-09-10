@@ -5,49 +5,31 @@ import { renderWithProviders } from "@/test/utils";
 import { useAuthStore } from "@/lib/auth";
 
 const anonymous = { user: null, status: "anonymous" as const };
-
-describe("HeroLanding (initial entry experience)", () => {
+describe("HeroLanding", () => {
   beforeEach(() => useAuthStore.setState(anonymous));
-
-  it("shows the premium hero: brand, title, subtitle and CTA to the existing screening page", () => {
+  it("shows the minimal static landing experience", () => {
     renderWithProviders(<HeroLanding />);
-    const home = screen.getByRole("link", { name: /veyra — ai fraud intelligence — home/i });
+    const home = screen.getByRole("link", { name: /veyra home/i });
     expect(within(home).getByText("VEYRA")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1, name: /veyra/i })).toBeInTheDocument();
-    expect(screen.getByText("Intelligent transaction screening, explanation, and risk analysis.")).toBeInTheDocument();
-    const cta = screen.getByRole("link", { name: /analyze a transaction/i });
-    expect(cta).toHaveAttribute("href", "/screening");
-    const explore = screen.getByRole("link", { name: /explore platform/i });
-    expect(explore).toHaveAttribute("href", "/login");
+    expect(screen.getByText("Intelligent transaction screening, explanation, and risk analysis for safer decisions.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /get started/i })).toHaveAttribute("href", "/login");
+    expect(screen.queryByRole("button", { name: /video/i })).not.toBeInTheDocument();
   });
-
-  it("has NO application sidebar on the landing page", () => {
+  it("has no application sidebar or feature navigation", () => {
     const { container } = renderWithProviders(<HeroLanding />);
     expect(container.querySelector("aside")).toBeNull();
     expect(screen.queryByRole("navigation", { name: /primary/i })).not.toBeInTheDocument();
-    // No dashboard nav labels either.
     expect(screen.queryByText("Batch analysis")).not.toBeInTheDocument();
-    expect(screen.queryByText("Model performance")).not.toBeInTheDocument();
   });
-
-  it("shows a Sign in action for anonymous visitors", () => {
+  it("shows sign in for anonymous visitors", () => {
     renderWithProviders(<HeroLanding />);
-    const signIn = screen.getByRole("link", { name: /sign in/i });
-    expect(signIn).toHaveAttribute("href", "/login");
-    expect(screen.queryByRole("link", { name: /open dashboard/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /sign in/i })).toHaveAttribute("href", "/login");
   });
-
-  it("shows an Open dashboard action for authenticated visitors", () => {
-    useAuthStore.setState({
-      user: {
-        id: "u1", email: "a@b.com", full_name: "Ana", role: "analyst",
-        is_active: true, created_at: new Date().toISOString(),
-      },
-      status: "authenticated",
-    });
+  it("shows Home for authenticated visitors", () => {
+    useAuthStore.setState({ user: { id: "u1", email: "a@b.com", full_name: "Ana", role: "analyst", is_active: true, created_at: new Date().toISOString() }, status: "authenticated" });
     renderWithProviders(<HeroLanding />);
-    const open = screen.getByRole("link", { name: /open dashboard/i });
-    expect(open).toHaveAttribute("href", "/overview");
-    expect(screen.queryByRole("link", { name: /sign in/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /open home/i })).toHaveAttribute("href", "/home");
+    expect(screen.queryByRole("link", { name: /^sign in$/i })).not.toBeInTheDocument();
   });
 });

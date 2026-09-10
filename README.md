@@ -1,880 +1,566 @@
-# VEYRA — Credit Card Fraud Detection System
+# VEYRA — AI Fraud Intelligence
 
-> **VEYRA** is the application brand for the **Credit Card Fraud Detection System** — an end-to-end fraud-screening platform that combines machine learning, explainable AI, deterministic risk rules, and a full-stack analyst workspace.
->
-> **Tagline:** *Intelligent transaction screening, explanation, and risk analysis.*
+> ***VEYRA is the product brand for the CREDIT CARD FRAUD DETECTION SYSTEM: an explainable, full-stack fraud-screening workspace that combines XGBoost machine learning, SHAP explanations, deterministic risk rules, authenticated analyst workflows, and asynchronous CSV batch analysis.***
 
----
+VEYRA is designed to answer two practical questions:
 
-## Table of Contents
+1. **Is this transaction suspicious?**
+2. **Why did the system produce that result?**
 
-* [Overview](#overview)
-* [What the Project Does](#what-the-project-does)
-* [What Was Worked On](#what-was-worked-on)
-* [Features](#features)
-* [Application Workflow](#application-workflow)
-* [Architecture](#architecture)
-* [Technology Stack](#technology-stack)
-* [Project Folder Structure](#project-folder-structure)
-* [Prerequisites](#prerequisites)
-* [Installation](#installation)
-* [Running the Project Locally](#running-the-project-locally)
-* [Database Setup](#database-setup)
-* [Demo Accounts](#demo-accounts)
-* [Configuration](#configuration)
-* [Using the Application](#using-the-application)
-* [Batch CSV Format](#batch-csv-format)
-* [Machine Learning Pipeline](#machine-learning-pipeline)
-* [Training the Model](#training-the-model)
-* [Model Artifacts](#model-artifacts)
-* [Dataset](#dataset)
-* [API Reference](#api-reference)
-* [Testing](#testing)
-* [Docker Compose](#docker-compose)
-* [Background Video](#background-video)
-* [Security](#security)
-* [Responsible AI and Limitations](#responsible-ai-and-limitations)
-* [Development Workflow](#development-workflow)
-* [Contributing](#contributing)
-* [License](#license)
+The system produces a screening signal for analyst review. It does not automatically approve, decline, freeze, or block a payment.
 
 ---
 
-# Overview
+## Contents
 
-**VEYRA** is a full-stack AI-powered credit-card fraud-screening system developed as an educational, engineering, and portfolio project.
-
-The system combines:
-
-* Machine-learning fraud detection.
-* XGBoost classification.
-* SHAP explainability.
-* Deterministic rule-based signals.
-* JWT authentication.
-* Transaction history.
-* High-risk alerts.
-* CSV batch screening.
-* Model-performance monitoring.
-* Analyst-oriented dashboards.
-* Responsive React frontend.
-* FastAPI backend.
-* Database persistence.
-* Automated testing.
-
-The primary purpose is to answer two questions:
-
-> **Is this transaction suspicious?**
-
-and:
-
-> **Why did the system produce this result?**
-
-The application generates **LOW**, **MEDIUM**, or **HIGH** risk screening signals. These results are designed for analyst review and are **not automated banking decisions**.
+* [**Project overview**](#project-overview)
+* [**What was worked on**](#what-was-worked-on)
+* [**Main features**](#main-features)
+* [**Product experience**](#product-experience)
+* [**Architecture**](#architecture)
+* [**Technology stack**](#technology-stack)
+* [**Repository structure**](#repository-structure)
+* [**Prerequisites**](#prerequisites)
+* [**Run locally**](#run-locally)
+* [**Run with Docker Compose**](#run-with-docker-compose)
+* [**Configuration**](#configuration)
+* [**Using the application**](#using-the-application)
+* [**Training the model**](#training-the-model)
+* [**Dataset and artifacts**](#dataset-and-artifacts)
+* [**API overview**](#api-overview)
+* [**Testing and verification**](#testing-and-verification)
+* [**Frontend redesign notes**](#frontend-redesign-notes)
+* [**Responsible AI and limitations**](#responsible-ai-and-limitations)
+* [**Contributing**](#contributing)
+* [**License**](#license)
 
 ---
 
-# What the Project Does
+## Project overview
 
-Credit-card fraud detection is a challenging machine-learning problem because fraudulent transactions are extremely rare compared with legitimate transactions.
+Credit-card fraud detection is a highly imbalanced classification problem: legitimate transactions significantly outnumber fraudulent ones, while both false positives and missed fraud have meaningful costs.
 
-VEYRA addresses this challenge through a multi-layered screening process.
+VEYRA combines three complementary layers:
 
-## 1. Machine Learning
+1. **Machine-learning scoring** — an XGBoost classifier produces a fraud probability from anonymized transaction features.
+2. **Deterministic rules** — a transparent rule engine identifies behavioural signals such as amount anomalies and exposes those signals separately from the model result.
+3. **Explainability** — SHAP TreeExplainer attributes the model's result to individual features and provides a human-readable explanation for analyst review.
 
-The system uses an **XGBoost classification model** to estimate the probability that a transaction is fraudulent.
+The application supports both individual investigation and operational review:
 
-The model works with anonymized transaction features such as:
+* Screen one transaction using **`Amount`**, **`Time`**, and **`V1`**–**`V28`** features.
+* Upload a CSV for asynchronous batch analysis.
+* Review persisted screening history.
+* Investigate high-risk alerts.
+* Inspect model metrics, thresholds, and feature importance.
+* Open local explanations for stored transactions.
+* Manage authenticated analyst and administrator accounts.
+
+The backend is a FastAPI service backed by SQLAlchemy/PostgreSQL, Redis, Celery, and versioned model artifacts. The frontend is a React/TypeScript application branded as VEYRA.
+
+---
+
+## What was worked on
+
+The project was developed as a complete ML product rather than only a notebook model. Major work included:
+
+### Machine-learning pipeline
+
+* Dataset loading and validation for anonymized credit-card transaction data.
+* Reusable preprocessing and feature handling for both training and inference.
+* Logistic-regression baseline comparison.
+* XGBoost training and evaluation.
+* Imbalanced-class metrics including precision, recall, F1, PR-AUC, and ROC-AUC.
+* Threshold selection and business-cost configuration using false-positive and false-negative weights.
+* Versioned model artifacts containing the model, metadata, metrics, thresholds, risk configuration, and global explanation data.
+
+### Fraud scoring and explainability
+
+* Real-time single-transaction scoring through the API.
+* Deterministic rule signals alongside the model prediction.
+* Risk bands: **`LOW`**, **`MEDIUM`**, and **`HIGH`**.
+* SHAP global feature importance.
+* SHAP local explanations for individual stored transactions.
+* Human-readable explanation summaries for analyst review.
+
+### Backend platform
+
+* FastAPI application with versioned **`/api/v1`** routes.
+* JWT access and refresh-token authentication.
+* Password hashing and token revocation support.
+* Analyst and administrator roles.
+* SQLAlchemy models and Alembic migrations.
+* PostgreSQL support with SQLite compatibility for tests and lightweight development.
+* Redis-backed rate limiting and Celery job processing.
+* Batch upload validation, job status, progress tracking, and result download.
+* Activity persistence and high-risk alert creation.
+* Health and readiness checks.
+
+### Frontend redesign
+
+The frontend was redesigned in place without rebuilding the backend or replacing existing API contracts. The new experience follows:
 
 ```text
-Time
-V1
-V2
-V3
-...
-V28
-Amount
+Landing → Login/Register → Bento Home → Focused Feature Page → Back to Home
 ```
 
-The result is converted into a screening risk level:
+The redesign includes:
 
-```text
-LOW
-MEDIUM
-HIGH
-```
-
-using the active model threshold.
-
----
-
-## 2. Deterministic Rule Engine
-
-In addition to the ML model, the application evaluates predefined deterministic rules.
-
-These rules can identify suspicious transaction characteristics independently of the model.
-
-For example:
-
-```text
-amount_anomaly
-```
-
-A rule signal provides an additional transparent explanation that an analyst can inspect.
+* A static black-and-gold landing experience with no landing-page video.
+* A dedicated landing background asset at **`frontend/public/images/veyra-landing-background.png`**.
+* A Bento-style authenticated Home page used as the only feature switcher.
+* A reusable **`FeatureShell`** with VEYRA branding, page title, theme control, and Back to Home action.
+* No sidebar, drawer, navigation rail, or bottom feature navigation on feature pages.
+* Dynamic authenticated-user greetings and avatar initials.
+* Centralized dark/light theme state with local-storage persistence.
+* Responsive layout behavior for desktop, tablet, and mobile widths.
+* Existing screening, SHAP, batch, activity, alerts, model, and authentication functionality preserved.
 
 ---
 
-## 3. Explainable AI with SHAP
+## Main features
 
-The system uses **SHAP TreeExplainer** to explain how individual features influenced the model prediction.
-
-Instead of returning only:
-
-```text
-Fraud probability: 99.4%
-```
-
-the system can provide information about:
-
-```text
-Why the model produced this score
-Which features increased the score
-Which features reduced the score
-Which features had the strongest influence
-```
-
-This makes the application more useful for investigation and model governance.
-
----
-
-## 4. Transaction Persistence
-
-Each screening is stored in the application's database.
-
-This enables:
-
-* Transaction history.
-* Activity tracking.
-* Detailed transaction views.
-* Local explanations.
-* High-risk alerts.
-* Dashboard statistics.
-
----
-
-## 5. Batch Screening
-
-The application also supports CSV uploads.
-
-Instead of analyzing one transaction at a time, an analyst can upload a dataset containing many anonymized transactions.
-
-The system validates the file and processes the batch asynchronously using the Celery/Redis architecture when configured.
-
----
-
-# What Was Worked On
-
-The project development covered both **software engineering** and **machine-learning engineering**.
-
-## Backend Development
-
-The FastAPI backend was developed with versioned API routes under:
-
-```text
-/api/v1
-```
-
-Major backend areas include:
-
-* Authentication.
-* Authorization.
-* Transaction screening.
-* Batch processing.
-* Transaction storage.
-* Alerts.
-* Model information.
-* Model metrics.
-* Explainability.
-* Health monitoring.
-
-The backend also includes:
-
-* Pydantic request/response validation.
-* SQLAlchemy database models.
-* Alembic migrations.
-* JWT authentication.
-* Password hashing.
-* Rate limiting.
-* Model artifact management.
-* Audit-oriented storage.
-
----
-
-## Machine-Learning Development
-
-The ML pipeline was developed around the anonymized credit-card fraud dataset.
-
-The work includes:
-
-* Dataset loading.
-* Exploratory data analysis.
-* Feature preparation.
-* Baseline Logistic Regression.
-* XGBoost modeling.
-* Model comparison.
-* Hyperparameter tuning.
-* Threshold optimization.
-* Evaluation metrics.
-* Confusion matrix analysis.
-* SHAP explainability.
-* Versioned model artifacts.
-
----
-
-## Frontend Development
-
-A complete React-based analyst workspace was developed.
-
-The application includes screens for:
-
-* Landing.
-* Login.
-* Registration.
-* Overview.
-* Transaction screening.
-* Batch analysis.
-* Activity.
-* Alerts.
-* Model performance.
-* Explainability.
-* About.
-
-The frontend was designed around the **VEYRA** brand and a premium fintech interface.
-
----
-
-## UI/UX Development
-
-The interface was refined toward a:
-
-* Minimal.
-* Premium.
-* Professional.
-* Classic fintech.
-* Analyst-oriented
-
-visual style.
-
-The major UI work included:
-
-* Shared design system.
-* Consistent typography.
-* Solid premium panels.
-* Risk badges.
-* Tables.
-* Charts.
-* Forms.
-* Responsive layouts.
-* Loading states.
-* Empty states.
-* Error states.
-* Screening result states.
-* Background-video integration.
-* Reduced-motion support.
-
-The video is decorative and does not affect application functionality.
-
----
-
-## Authentication and End-to-End Integration
-
-The project also includes end-to-end authentication functionality:
-
-```text
-Register
-   ↓
-Login
-   ↓
-Access Token
-   ↓
-Protected Application
-   ↓
-Authenticated API Requests
-   ↓
-Logout / Token Revocation
-```
-
-The frontend communicates with the FastAPI backend through the API layer.
-
----
-
-# Features
-
-## Authentication
+### 1. Authentication and accounts
 
 * User registration.
-* Login.
-* JWT access tokens.
-* JWT refresh tokens.
-* Token refresh.
-* Logout.
+* Login and logout.
+* Access-token and refresh-token flow.
+* Current-user retrieval.
+* Protected frontend routes.
+* Analyst and admin roles.
+* Password hashing.
 * Token revocation.
-* Current-user endpoint.
-* Analyst role.
-* Admin role.
-* Login rate limiting.
+* Rate limiting for login and screening endpoints.
 
----
+Development seed accounts are available after running the seed command:
 
-## Transaction Screening
+| **Email**                 | **Role** | **Password**       |
+| ------------------------- | -------- | ------------------ |
+| **`analyst@example.com`** | Analyst  | **`Password123!`** |
+| **`admin@example.com`**   | Admin    | **`Password123!`** |
 
-The core feature of VEYRA.
+Change or remove development credentials before any non-local deployment.
 
-Users can provide:
+### 2. Single-transaction screening
+
+Screen an individual transaction using:
 
 * Transaction amount.
 * Timestamp.
 * Optional external reference.
-* V1–V28 anonymized features.
+* **`V1`** through **`V28`** anonymized features.
 
-The application then runs:
-
-```text
-Validation
-    ↓
-Feature preparation
-    ↓
-ML prediction
-    ↓
-Rule evaluation
-    ↓
-SHAP explanation
-    ↓
-Database persistence
-    ↓
-Risk classification
-```
-
-The resulting screen contains information such as:
+The screening workflow returns or displays:
 
 * Fraud probability.
-* Risk level.
-* Model prediction.
-* Threshold.
+* Prediction.
+* Risk band.
+* Active threshold.
 * Model version.
-* Triggered rules.
-* SHAP contribution.
+* Triggered deterministic rules.
+* SHAP feature contributions.
 * Human-readable explanation.
-* Screening timestamp.
+* Persisted transaction history.
 
----
+The frontend may provide sample/demo inputs for testing the workflow, but the result still comes from the real scoring path rather than fabricated UI data.
 
-## Demo Transactions
+### 3. Batch CSV analysis
 
-The screening page includes sample inputs that allow the complete workflow to be tested without manually entering every feature.
+Upload a CSV containing anonymized transaction features. The required columns are:
 
-These demo inputs are clearly intended for demonstration purposes.
+```text
+Time, V1, V2, ..., V28, Amount
+```
 
-The result still comes from the actual screening pipeline.
+Optional columns may include **`Class`**, **`external_ref`**, and **`occurred_at`** where supported by the backend contract.
 
----
+The batch workflow provides:
 
-## Batch Analysis
+* File validation.
+* Size and row limits.
+* Asynchronous Celery processing.
+* Job status and progress.
+* Error reporting.
+* Downloadable result CSV.
 
-Users can upload CSV files containing multiple transactions.
+Raw card numbers, CVVs, and other non-anonymized payment data are not part of the accepted schema.
 
-The batch workflow supports:
+### 4. Activity ledger
 
-* File upload.
-* Schema validation.
-* Required-column validation.
-* Upload-size restrictions.
-* Row limits.
-* Asynchronous processing.
-* Job status.
-* Progress information.
-* Job history.
-* Results download.
+Review previously screened transactions with:
 
----
+* Pagination.
+* Search.
+* Date and risk filters.
+* Prediction filters.
+* Sortable transaction information.
+* Links to transaction details and explanations.
 
-## Activity Ledger
+### 5. High-risk alerts
 
-The Activity page provides a persistent transaction ledger.
-
-It supports information such as:
+The Alerts workspace focuses on investigation of high-risk screenings. It can show:
 
 * Transaction reference.
-* Date/time.
+* Fraud probability.
+* Amount.
 * Risk level.
-* Prediction.
-* Amount.
-* Screening status.
-* Transaction details.
+* Triggered rule signals.
+* Detection timestamp.
+* View/review action.
 
-Filtering and pagination are available through the API and frontend.
+### 6. Model performance and governance
 
----
+The Model Performance workspace exposes model-governance information such as:
 
-## Alerts
-
-The Alerts page provides a review queue for recent high-risk transactions.
-
-Analysts can inspect:
-
-* Risk probability.
-* Amount.
-* Triggered rule.
-* Detection time.
-* Related transaction.
-* Explanation.
-
----
-
-## Model Performance
-
-The Model Performance page provides model governance information.
-
-It can display:
-
-* Model version.
+* Active model version.
 * Training metadata.
-* Features.
-* Dataset information.
 * Precision.
 * Recall.
 * F1 score.
 * PR-AUC.
 * ROC-AUC.
 * Confusion matrix.
-* Threshold behavior.
+* Threshold information and trade-offs.
+* Feature importance.
+
+### 7. Explainability
+
+Explainability is available at both global and local levels:
+
+* Global feature importance from mean absolute SHAP values.
+* Local SHAP contributions for a selected transaction.
+* Positive and negative feature contributions.
+* Fraud probability.
+* Human-readable explanation.
+
+SHAP values describe the behaviour of the trained model; they do not prove that a feature caused real-world fraud.
+
+### 8. VEYRA frontend experience
+
+The redesigned frontend contains the following user-facing areas:
+
+* **Landing** — minimal brand introduction with a static black/gold background.
+* **Login/Register** — quiet, focused authentication screens.
+* **Home** — Bento feature launcher with dynamic user identity.
+* **Overview** — system-level metrics and activity.
+* **Screen Transaction** — one-transaction investigation workspace.
+* **Batch Analysis** — CSV upload and job results.
+* **Activity** — transaction ledger.
+* **Alerts** — high-risk investigation queue.
+* **Model Performance** — model governance and metrics.
+* **Explainability** — SHAP-based model explanations.
+* **About** — product, methodology, responsible-AI, and developer information.
+
+Feature pages intentionally do not contain a sidebar. Users return to Home to change workspaces.
 
 ---
 
-## Explainability
+## Product experience
 
-VEYRA supports two types of explainability.
-
-### Global Explainability
-
-Shows which features are generally most important to the model.
-
-### Local Explainability
-
-Shows why a particular transaction received its score.
-
-The local explanation can show:
+The final navigation structure is:
 
 ```text
-Positive contribution
-Negative contribution
-Feature name
-Feature impact
-Overall interpretation
+/                   Public landing page
+/login              Login
+/register           Registration
+
+/home               Protected Bento feature launcher
+/overview           Protected system overview
+/screening          Protected single-transaction screening
+/batch              Protected CSV batch analysis
+/activity           Protected transaction history
+/alerts             Protected high-risk alerts
+/model-performance  Protected model governance
+/explainability     Protected SHAP explanations
+/about              Protected product information
 ```
 
----
+The authenticated Home page is the only feature-switching hub. Feature pages use a minimal shared header containing:
 
-## Responsive UI
+* VEYRA wordmark.
+* Current page title.
+* Theme toggle.
+* **`← Back to Home`**.
+* Optional authenticated-user initials.
 
-The frontend is designed for:
-
-* Desktop.
-* Laptop.
-* Tablet.
-* Mobile.
-
-The UI uses responsive layouts and avoids unnecessary horizontal overflow on smaller screens.
+There is no persistent feature sidebar, hidden feature drawer, mobile rail, or bottom navigation.
 
 ---
 
-# Application Workflow
-
-The overall analyst workflow is:
+## Architecture
 
 ```text
-           ┌───────────────┐
-           │    ANALYZE    │
-           │ Screen a txn  │
-           └───────┬───────┘
-                   ↓
-           ┌───────────────┐
-           │    EXPLAIN    │
-           │ SHAP + Rules  │
-           └───────┬───────┘
-                   ↓
-           ┌───────────────┐
-           │    REVIEW     │
-           │ Activity +    │
-           │ Alerts        │
-           └───────┬───────┘
-                   ↓
-           ┌───────────────┐
-           │    MONITOR    │
-           │ Dashboard +   │
-           │ Model metrics │
-           └───────────────┘
+┌────────────────────────────── Browser ──────────────────────────────┐
+│ React 18 + TypeScript + Vite                                       │
+│ VEYRA landing · auth · Bento Home · focused feature workspaces      │
+└───────────────────────────────┬─────────────────────────────────────┘
+                                │ HTTP/JSON under /api/v1
+                                ▼
+┌──────────────────────────── FastAPI ────────────────────────────────┐
+│ Auth · screening · batch · transactions · alerts · model · health  │
+│ Scoring service · rule engine · model registry · storage · audit   │
+└─────────────┬──────────────────────┬───────────────────┬────────────┘
+              │                      │                   │
+              ▼                      ▼                   ▼
+       PostgreSQL / SQLite          Redis          Versioned artifacts
+       SQLAlchemy + Alembic        rate limit      model + metadata
+              │                      │
+              └──────────────────────┴──────────────┐
+                                                     ▼
+                                              Celery worker
+                                            asynchronous batches
 ```
 
+Important engineering decisions:
+
+* The preprocessing used during inference is shared with the training pipeline.
+* Model artifacts are versioned and can be selected using **`MODEL_VERSION`**.
+* Rules and ML predictions remain separate and visible to the analyst.
+* Batch analysis is asynchronous when Redis and Celery are available.
+* Backend API contracts remain under **`/api/v1`**.
+* The frontend redesign changes presentation and navigation, not fraud-scoring intelligence.
+* The landing page uses a static image; the previous video asset is not rendered by the active landing route.
+
 ---
 
-# Architecture
+## Technology stack
+
+### Backend and ML
+
+| **Area**       | **Technology**                                          |
+| -------------- | ------------------------------------------------------- |
+| API            | FastAPI, Uvicorn, Pydantic v2                           |
+| Persistence    | SQLAlchemy 2, PostgreSQL 16, SQLite for tests/CI        |
+| Migrations     | Alembic                                                 |
+| Authentication | JWT, password hashing, refresh-token storage/revocation |
+| Queue          | Celery and Redis                                        |
+| ML             | scikit-learn, XGBoost, pandas, NumPy, joblib            |
+| Explainability | SHAP TreeExplainer                                      |
+| Testing        | pytest, httpx                                           |
+
+### Frontend
+
+| **Area**      | **Technology**                            |
+| ------------- | ----------------------------------------- |
+| UI            | React 18 and TypeScript                   |
+| Build         | Vite 5                                    |
+| Routing       | React Router 6                            |
+| Data fetching | TanStack Query and Axios                  |
+| Client state  | Zustand                                   |
+| Forms         | react-hook-form and Zod                   |
+| Styling       | Tailwind CSS and shared CSS design tokens |
+| Charts        | Recharts                                  |
+| Icons         | lucide-react                              |
+| Testing       | Vitest and Testing Library                |
+
+---
+
+## Repository structure
 
 ```text
-┌─────────────────────────────── Browser ───────────────────────────────┐
-│                                                                       │
-│                  React 18 + TypeScript + Vite                         │
-│                                                                       │
-│  VEYRA Analyst Workspace                                              │
-│                                                                       │
-│  Overview · Screening · Batch · Activity · Alerts                    │
-│  Model Performance · Explainability · About                          │
-│                                                                       │
-└──────────────────────────────┬────────────────────────────────────────┘
-                               │
-                               │ HTTP / JSON
-                               ▼
-┌──────────────────────────── FastAPI ───────────────────────────────────┐
-│                                                                       │
-│                         /api/v1                                      │
-│                                                                       │
-│  Auth · Screening · Batch · Transactions · Model · Alerts            │
-│                                                                       │
-│  Services:                                                            │
-│  ├── Model Registry                                                   │
-│  ├── Model Service                                                    │
-│  ├── Scoring                                                          │
-│  ├── Rule Engine                                                      │
-│  ├── Storage                                                           │
-│  ├── Audit                                                             │
-│  ├── Rate Limiting                                                     │
-│  └── Token Store                                                       │
-│                                                                       │
-│  ML:                                                                  │
-│  Features → XGBoost → SHAP                                            │
-│                                                                       │
-└───────────────┬──────────────────┬───────────────────┬─────────────────┘
-                │                  │                   │
-                ▼                  ▼                   ▼
-        PostgreSQL / SQLite       Redis          Model Artifacts
-        SQLAlchemy + Alembic     Celery          artifacts/models/
-                │                  │
-                └────────────┬─────┘
-                             ▼
-                      Celery Worker
-                   Async Batch Processing
-```
-
----
-
-# Technology Stack
-
-## Backend
-
-| Area                | Technology       |
-| ------------------- | ---------------- |
-| API                 | FastAPI          |
-| Server              | Uvicorn          |
-| Validation          | Pydantic v2      |
-| ORM                 | SQLAlchemy 2     |
-| Migrations          | Alembic          |
-| Authentication      | PyJWT            |
-| Password hashing    | pwdlib / Argon2  |
-| File handling       | python-multipart |
-| Task queue          | Celery           |
-| Broker              | Redis            |
-| Local database      | SQLite supported |
-| Production database | PostgreSQL       |
-
----
-
-## Machine Learning
-
-| Area                | Technology   |
-| ------------------- | ------------ |
-| Data processing     | Pandas       |
-| Numerical computing | NumPy        |
-| Baseline model      | scikit-learn |
-| Main model          | XGBoost      |
-| Explainability      | SHAP         |
-| Model persistence   | Joblib       |
-| Visualization       | Matplotlib   |
-
----
-
-## Frontend
-
-| Area         | Technology      |
-| ------------ | --------------- |
-| UI framework | React 18        |
-| Language     | TypeScript      |
-| Build tool   | Vite            |
-| Routing      | React Router    |
-| Server state | TanStack Query  |
-| Client state | Zustand         |
-| HTTP client  | Axios           |
-| Forms        | React Hook Form |
-| Validation   | Zod             |
-| Styling      | Tailwind CSS    |
-| Charts       | Recharts        |
-| Icons        | lucide-react    |
-| Animation    | Framer Motion   |
-
----
-
-## Testing and DevOps
-
-* Pytest.
-* HTTPX.
-* Vitest.
-* React Testing Library.
-* GitHub Actions.
-* Docker.
-* Docker Compose.
-* Nginx.
-
----
-
-# Project Folder Structure
-
-```text
-CREDIT CARD FRAUD DETECTION SYSTEM/
-│
+.
 ├── backend/
-│   │
 │   ├── app/
-│   │   ├── main.py
-│   │   │
-│   │   ├── api/
-│   │   │   └── routes/
-│   │   │       ├── auth.py
-│   │   │       ├── screening.py
-│   │   │       ├── batch.py
-│   │   │       ├── transactions.py
-│   │   │       ├── model.py
-│   │   │       ├── alerts.py
-│   │   │       └── health.py
-│   │   │
-│   │   ├── core/
-│   │   │   ├── config.py
-│   │   │   ├── security.py
-│   │   │   ├── dependencies.py
-│   │   │   └── logging.py
-│   │   │
-│   │   ├── db/
-│   │   │   ├── models/
-│   │   │   ├── session.py
-│   │   │   └── seed.py
-│   │   │
-│   │   ├── schemas/
-│   │   │   └── API request/response schemas
-│   │   │
-│   │   ├── services/
-│   │   │   ├── model_registry
-│   │   │   ├── model_service
-│   │   │   ├── scoring
-│   │   │   ├── rule_engine
-│   │   │   ├── storage
-│   │   │   ├── audit
-│   │   │   ├── rate_limit
-│   │   │   └── token_store
-│   │   │
-│   │   └── fraud_detector/
-│   │       ├── data/
-│   │       ├── features/
-│   │       ├── models/
-│   │       ├── evaluation/
-│   │       └── explainability/
-│   │
-│   ├── alembic/
-│   ├── tests/
-│   ├── train_model.py
-│   └── requirements.txt
+│   │   ├── main.py                  # FastAPI application and lifespan setup
+│   │   ├── api/routes/              # HTTP routes under /api/v1
+│   │   ├── core/                    # Configuration, security, dependencies, logging
+│   │   ├── db/                      # SQLAlchemy models, sessions, seed logic
+│   │   ├── schemas/                 # Pydantic request and response contracts
+│   │   ├── services/                # Scoring, model registry, storage, rules, audit
+│   │   ├── fraud_detector/          # Data, features, models, evaluation, SHAP
+│   │   └── workers/                 # Celery application and batch tasks
+│   ├── alembic/                     # Database migration scripts
+│   ├── tests/                       # Backend unit and integration tests
+│   ├── train_model.py               # Training and artifact-generation CLI
+│   ├── requirements.txt             # Python dependencies
+│   └── Dockerfile                   # Backend container image
 │
 ├── frontend/
-│   │
 │   ├── src/
-│   │   ├── pages/
-│   │   │   ├── HeroLanding
-│   │   │   ├── Login
-│   │   │   ├── Register
-│   │   │   ├── Overview
-│   │   │   ├── Screening
-│   │   │   ├── BatchAnalysis
-│   │   │   ├── Activity
-│   │   │   ├── Alerts
-│   │   │   ├── ModelPerformance
-│   │   │   ├── Explainability
-│   │   │   └── About
-│   │   │
-│   │   ├── components/
-│   │   │   ├── layout/
-│   │   │   ├── ui/
-│   │   │   ├── charts/
-│   │   │   ├── tables/
-│   │   │   └── brand/
-│   │   │
-│   │   ├── hooks/
-│   │   ├── lib/
 │   │   ├── app/
-│   │   ├── styles/
-│   │   └── types/
-│   │
-│   └── public/
-│       └── videos/
-│           └── credit-card-fraud-background.mp4
+│   │   │   ├── providers.tsx        # Query, toast, theme, router providers
+│   │   │   ├── router.tsx           # Public/protected route architecture
+│   │   │   └── theme.tsx            # Persistent dark/light theme state
+│   │   ├── components/
+│   │   │   ├── brand/               # VEYRA mark and wordmark
+│   │   │   ├── layout/              # FeatureShell, headers, legacy layout utilities
+│   │   │   ├── navigation/          # Theme toggle and navigation controls
+│   │   │   ├── charts/              # SHAP and chart components
+│   │   │   ├── tables/              # Transaction tables
+│   │   │   └── ui/                  # Buttons, states, metrics, badges, gauges
+│   │   ├── pages/
+│   │   │   ├── HeroLanding.tsx      # Static black/gold public landing page
+│   │   │   ├── Login.tsx            # Authentication
+│   │   │   ├── Register.tsx         # Account creation
+│   │   │   ├── Home.tsx             # Bento feature launcher
+│   │   │   ├── Overview.tsx         # System overview
+│   │   │   ├── Screening.tsx        # Single-transaction screening
+│   │   │   ├── BatchAnalysis.tsx    # CSV batch workflow
+│   │   │   ├── Activity.tsx         # Transaction ledger
+│   │   │   ├── Alerts.tsx           # High-risk alerts
+│   │   │   ├── ModelPerformance.tsx # Model governance
+│   │   │   ├── Explainability.tsx   # SHAP explanations
+│   │   │   └── About.tsx            # Product and methodology
+│   │   ├── hooks/                   # Reusable data hooks
+│   │   ├── lib/                     # API client, auth, formatters, validation
+│   │   ├── styles/index.css         # Global tokens, shells, responsive styles
+│   │   ├── types/                   # Shared frontend types
+│   │   └── test/                    # Test setup and render helpers
+│   ├── public/images/               # Static application imagery
+│   │   └── veyra-landing-background.png
+│   ├── public/videos/               # Retained legacy asset; not used on landing
+│   ├── package.json                 # Frontend scripts and dependencies
+│   └── Dockerfile                   # Vite build and Nginx image
 │
-├── data/
-│   ├── README.md
-│   ├── raw/
-│   └── processed/
-│
-├── artifacts/
-│   └── models/
-│
-├── results/
-│
-├── notebooks/
-│   ├── 01_eda.ipynb
-│   ├── 02_baseline_model.ipynb
-│   └── 03_model_comparison.ipynb
-│
-├── redesign-shots/
-│
-├── docker-compose.yml
-├── Makefile
-├── .env.example
-├── .github/
-│   └── workflows/
-│       └── ci.yml
-│
-└── README.md
+├── data/                             # Dataset documentation and local data folders
+├── artifacts/                        # Generated model artifacts; normally git-ignored
+├── results/                          # Training/evaluation outputs
+├── notebooks/                        # EDA, baseline, and model-comparison notebooks
+├── redesign-shots/                   # UI reference and verification screenshots
+├── .env.example                      # Environment configuration template
+├── docker-compose.yml                # PostgreSQL, Redis, API, worker, frontend
+├── Makefile                           # Common development commands
+└── .github/workflows/ci.yml           # CI checks for backend, frontend, and Docker
 ```
 
----
-
-# Prerequisites
-
-Recommended environment:
-
-| Tool       | Version                   |
-| ---------- | ------------------------- |
-| Python     | 3.11+                     |
-| Node.js    | 20+                       |
-| npm        | 9+                        |
-| PostgreSQL | 16+ if PostgreSQL is used |
-| Redis      | 7+ for Celery worker      |
-| Docker     | Optional                  |
-
-### For the simplest local setup
-
-You only need:
-
-* Python.
-* Node.js.
-* npm.
-
-The current project can run locally using **SQLite**, so PostgreSQL is not required for the basic development workflow.
-
-Redis is primarily required when running the asynchronous Celery batch-processing workflow.
+Generated directories such as **`artifacts/`**, **`results/`**, Python caches, **`node_modules/`**, and frontend build output should not be committed unless a specific reproducibility requirement calls for them.
 
 ---
 
-# Installation
+## Prerequisites
 
-## 1. Clone the Repository
+For local development:
+
+* Python 3.11 or newer.
+* Node.js 20 or newer.
+* npm 9 or newer.
+* Git.
+* PostgreSQL 16 for the full database workflow, or SQLite for a lightweight local/test setup.
+* Redis 7 for Celery batch processing and distributed rate limiting.
+* Docker Desktop or Docker Engine with Compose is optional but recommended.
+
+The project was tested in CI with Python 3.12 and Node 20.
+
+---
+
+## Run locally
+
+### 1. Clone the repository
 
 ```bash
-git clone <YOUR-GITHUB-REPOSITORY-URL>
-cd "CREDIT CARD FRAUD DETECTION SYSTEM"
+git clone <repository-url> veyra
+cd veyra
 ```
 
----
+### 2. Create the environment file
 
-## 2. Create Python Virtual Environment
+```bash
+cp .env.example .env
+```
 
-### Windows PowerShell
+Generate a real secret for any environment beyond a disposable local demo:
 
-```powershell
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(64))"
+```
+
+Replace **`JWT_SECRET`** in **`.env`** with the generated value.
+
+### 3. Install backend dependencies
+
+```bash
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+
+# macOS/Linux
+source .venv/bin/activate
+
+# Windows PowerShell
+# .venv\Scripts\Activate.ps1
+
+python -m pip install --upgrade pip
+pip install -r backend/requirements.txt
 ```
 
-### Linux / macOS
+### 4. Install frontend dependencies
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
----
-
-## 3. Install Backend Dependencies
-
-```powershell
-cd backend
-pip install -r requirements.txt
-cd ..
-```
-
----
-
-## 4. Install Frontend Dependencies
-
-```powershell
 cd frontend
-npm install
+npm ci
 cd ..
 ```
 
----
+### 5. Start PostgreSQL and Redis
 
-# Running the Project Locally
+The simplest approach is to start the supporting services using the Makefile:
 
-The current local setup can be run using **two terminals**.
+```bash
+make db-start
+make redis-start
+```
 
-## Terminal 1 — Backend
+Alternatively, use the PostgreSQL and Redis services from Docker Compose as described below.
 
-From the project root:
+For a lightweight backend test setup, set a SQLite URL in **`.env`**:
 
-```powershell
-cd "C:\Users\varsh\Downloads\CREDIT CARD FRAUD DETECTION SYSTEM"
-.\.venv\Scripts\Activate.ps1
-$env:DATABASE_URL="sqlite:///./dev.db"
+```dotenv
+DATABASE_URL=sqlite:///dev.db
+```
+
+SQLite is useful for tests and small local experiments. PostgreSQL is recommended for a closer production-shaped workflow.
+
+### 6. Apply migrations and seed users
+
+```bash
+make migrate
+make seed
+```
+
+### 7. Train or provide a model artifact
+
+If a compatible versioned artifact already exists in **`artifacts/models/`**, the API can load it. Otherwise, run:
+
+```bash
+make train
+```
+
+For a faster smoke run:
+
+```bash
 cd backend
-uvicorn app.main:app --reload
+python train_model.py --fake --no-tuning --no-shap --skip-eda
+cd ..
 ```
 
-The backend runs at:
+The synthetic option is for tests and demonstrations only; it is not a production training dataset.
 
-```text
-http://127.0.0.1:8000
+### 8. Start the API
+
+```bash
+make backend
 ```
 
-### Swagger API Documentation
+The API is available at:
 
-```text
-http://127.0.0.1:8000/docs
+* Application: **`http://localhost:8000`**
+* Swagger UI: **`http://localhost:8000/docs`**
+* Health endpoint: **`http://localhost:8000/api/v1/health`**
+
+### 9. Start the Celery worker
+
+For asynchronous batch analysis:
+
+```bash
+make worker
 ```
 
-### OpenAPI Specification
+Keep Redis running while the worker is active.
 
-```text
-http://127.0.0.1:8000/api/v1/openapi.json
-```
+### 10. Start the frontend
 
-### Health Check
+In another terminal:
 
-```text
-http://127.0.0.1:8000/api/v1/health
-```
-
----
-
-## Terminal 2 — Frontend
-
-```powershell
-cd "C:\Users\varsh\Downloads\CREDIT CARD FRAUD DETECTION SYSTEM\frontend"
-npm run dev
+```bash
+make frontend
 ```
 
 Open:
@@ -883,642 +569,248 @@ Open:
 http://localhost:5173
 ```
 
----
-
-# Database Setup
-
-## SQLite — Recommended for Local Development
-
-The easiest local configuration is:
-
-```powershell
-$env:DATABASE_URL="sqlite:///./dev.db"
-```
-
-Then run:
-
-```powershell
-cd backend
-alembic upgrade head
-python -m app.db.seed
-```
-
-This creates/applies the database schema and seeds the development accounts.
+The Vite development server proxies **`/api`** requests to the local backend. Sign in with a seeded account and the authenticated Bento Home page will open at **`/home`**.
 
 ---
 
-## PostgreSQL
+## Run with Docker Compose
 
-PostgreSQL can be used instead when required.
-
-Example:
-
-```env
-DATABASE_URL=postgresql+psycopg://postgres:<password>@localhost:5432/fraud_detector
-```
-
-Then:
+Docker Compose runs PostgreSQL, Redis, the API, Celery worker, and the production frontend together.
 
 ```bash
-cd backend
-alembic upgrade head
-python -m app.db.seed
+cp .env.example .env
+docker compose up --build -d
 ```
 
----
-
-# Demo Accounts
-
-The development seed provides:
-
-| Email                 | Role    | Password       |
-| --------------------- | ------- | -------------- |
-| `analyst@example.com` | Analyst | `Password123!` |
-| `admin@example.com`   | Admin   | `Password123!` |
-
-These accounts are for local testing and demonstration only.
-
-**Do not use these credentials in a production deployment.**
-
----
-
-# Configuration
-
-Configuration is managed through environment variables.
-
-Example:
-
-```env
-APP_NAME=Credit Card Fraud Detection System
-
-ENVIRONMENT=development
-DEBUG=true
-
-JWT_SECRET=change-me
-JWT_ALGORITHM=HS256
-
-JWT_ACCESS_TTL_MIN=30
-JWT_REFRESH_TTL_DAYS=7
-
-DATABASE_URL=sqlite:///./dev.db
-
-REDIS_URL=redis://localhost:6379/0
-
-CORS_ORIGINS=http://localhost:5173
-
-VITE_API_BASE_URL=
-
-FP_COST=1.0
-FN_COST=5.0
-
-MODEL_VERSION=
-
-RATE_LIMIT_SCREEN_PER_MINUTE=60
-RATE_LIMIT_LOGIN_PER_MINUTE=20
-
-MAX_UPLOAD_MB=20
-BATCH_CHUNK_SIZE=500
-```
-
-## Configuration Reference
-
-| Variable                       | Description                                    |
-| ------------------------------ | ---------------------------------------------- |
-| `APP_NAME`                     | Application/API name                           |
-| `ENVIRONMENT`                  | Current environment                            |
-| `DEBUG`                        | Enables development debugging                  |
-| `JWT_SECRET`                   | Secret used to sign JWTs                       |
-| `JWT_ALGORITHM`                | JWT signing algorithm                          |
-| `JWT_ACCESS_TTL_MIN`           | Access-token lifetime                          |
-| `JWT_REFRESH_TTL_DAYS`         | Refresh-token lifetime                         |
-| `DATABASE_URL`                 | Database connection                            |
-| `REDIS_URL`                    | Redis connection                               |
-| `CORS_ORIGINS`                 | Allowed frontend origins                       |
-| `VITE_API_BASE_URL`            | Frontend API origin                            |
-| `FP_COST`                      | False-positive cost for threshold optimization |
-| `FN_COST`                      | False-negative cost for threshold optimization |
-| `MODEL_VERSION`                | Optional model-artifact version                |
-| `RATE_LIMIT_SCREEN_PER_MINUTE` | Screening request limit                        |
-| `RATE_LIMIT_LOGIN_PER_MINUTE`  | Login request limit                            |
-| `MAX_UPLOAD_MB`                | Maximum batch-upload size                      |
-| `BATCH_CHUNK_SIZE`             | Batch processing chunk size                    |
-
-For a stronger JWT secret:
-
-```bash
-python -c "import secrets; print(secrets.token_urlsafe(64))"
-```
-
----
-
-# Using the Application
-
-## 1. Open VEYRA
-
-Navigate to:
+The application is then available at:
 
 ```text
-http://localhost:5173
+http://localhost:8080
+```
+
+Useful commands:
+
+```bash
+docker compose ps
+docker compose logs -f
+docker compose logs -f api
+docker compose logs -f worker
+docker compose down
+```
+
+Services:
+
+| **Service**    |   **Port** | **Purpose**                                  |
+| -------------- | ---------: | -------------------------------------------- |
+| **`postgres`** | **`5432`** | Persistent relational database               |
+| **`redis`**    | **`6379`** | Celery broker, job state, rate-limit backend |
+| **`api`**      | **`8000`** | FastAPI application                          |
+| **`worker`**   |          — | Celery batch-processing worker               |
+| **`frontend`** | **`8080`** | Nginx-served production build                |
+
+The frontend Docker build uses **`VITE_API_BASE_URL`**. For a browser running on the host, the default **`http://localhost:8000`** is normally correct. In a deployed environment, set it to the externally reachable API origin.
+
+---
+
+## Configuration
+
+Copy **`.env.example`** to **`.env`** and adjust the values as needed.
+
+| **Variable**                       | **Purpose**                                                    |
+| ---------------------------------- | -------------------------------------------------------------- |
+| **`APP_NAME`**                     | Backend application name                                       |
+| **`ENVIRONMENT`**                  | Runtime environment such as **`development`** or **`testing`** |
+| **`DEBUG`**                        | Enables development debugging behaviour                        |
+| **`JWT_SECRET`**                   | Secret used to sign tokens; change outside local demos         |
+| **`JWT_ALGORITHM`**                | JWT signing algorithm, normally **`HS256`**                    |
+| **`JWT_ACCESS_TTL_MIN`**           | Access-token lifetime in minutes                               |
+| **`JWT_REFRESH_TTL_DAYS`**         | Refresh-token lifetime in days                                 |
+| **`DATABASE_URL`**                 | PostgreSQL or SQLite SQLAlchemy URL                            |
+| **`REDIS_URL`**                    | Redis connection URL                                           |
+| **`CORS_ORIGINS`**                 | Comma-separated permitted browser origins                      |
+| **`VITE_API_BASE_URL`**            | API origin baked into a production frontend build              |
+| **`FP_COST`**                      | False-positive cost used by threshold selection                |
+| **`FN_COST`**                      | False-negative cost used by threshold selection                |
+| **`MODEL_VERSION`**                | Optional model-artifact version pin                            |
+| **`RATE_LIMIT_SCREEN_PER_MINUTE`** | Screening rate limit                                           |
+| **`RATE_LIMIT_LOGIN_PER_MINUTE`**  | Login rate limit                                               |
+| **`MAX_UPLOAD_MB`**                | Maximum CSV upload size                                        |
+| **`BATCH_CHUNK_SIZE`**             | Number of rows processed per batch chunk                       |
+
+Never commit a real **`.env`** file or production secrets.
+
+---
+
+## Makefile commands
+
+Run these from the repository root:
+
+```bash
+make help             # list commands
+make setup            # create venv and install backend/frontend dependencies
+make env              # create .env from .env.example
+make db-start         # start PostgreSQL in Docker
+make db-stop          # stop PostgreSQL container
+make redis-start      # start Redis in Docker
+make redis-stop       # stop Redis container
+make migrate          # apply Alembic migrations
+make seed             # create development users
+make train            # train the model and write an artifact
+make backend          # start FastAPI on port 8000
+make worker           # start Celery worker
+make frontend         # start Vite on port 5173
+make test             # run backend and frontend tests
+make test-backend     # run pytest
+make test-frontend    # run Vitest
+make lint             # frontend typecheck plus backend byte-compile
+make docker-up        # build and start the full Docker stack
+make docker-down      # stop the Docker stack
+make docker-logs      # follow Docker logs
+make clean            # remove caches and frontend build output
 ```
 
 ---
 
-## 2. Sign In
+## Using the application
 
-Use:
+### Sign in
+
+Use one of the development accounts after seeding:
 
 ```text
 Email:    analyst@example.com
 Password: Password123!
 ```
 
----
+### Choose a workspace
 
-## 3. Overview
+After login, Home presents the Bento feature launcher. Select one workspace:
 
-The Overview dashboard provides a central view of:
+* **Overview** for system-level metrics.
+* **Screen Transaction** for a single investigation.
+* **Batch Analysis** for CSV processing.
+* **Activity** for historical screenings.
+* **Alerts** for high-risk investigations.
+* **Model Performance** for governance and metrics.
+* **Explainability** for SHAP explanations.
+* **About VEYRA** for methodology and project information.
 
-* Screening activity.
-* Risk distribution.
-* Transaction statistics.
-* Recent high-risk activity.
-* Seven-day trends.
+Feature pages do not have a sidebar. Use **`← Back to Home`** to return to the launcher.
 
----
+### Screen a transaction
 
-## 4. Screening
+1. Open **Screen Transaction** from Home.
+2. Enter an amount, timestamp, and anonymized feature values, or choose an available demo input.
+3. Run the analysis.
+4. Review probability, prediction, risk band, threshold, model version, rule signals, and SHAP explanation.
+5. Return to Home or open the saved transaction through Activity/Alerts.
 
-Navigate to **Screening**.
+### Upload a batch
 
-Enter transaction information or use a demo transaction.
+1. Open **Batch Analysis**.
+2. Upload a CSV containing **`Time`**, **`V1`**–**`V28`**, and **`Amount`**.
+3. Confirm validation and start processing.
+4. Monitor the job state and progress.
+5. Download the result CSV when processing completes.
 
-Click:
+### Investigate alerts
 
-```text
-Run Screening
-```
-
-The system processes the transaction through the scoring workflow.
-
-Example result presentation:
-
-```text
-Fraud Probability
-99.4%
-
-Risk Level
-HIGH
-
-Prediction
-Fraud
-
-Triggered Rules
-amount_anomaly
-
-Model Explanation
-SHAP-based feature contributions
-```
-
-The exact result will vary according to the active model and input values.
+Open **Alerts** from Home to review high-risk screenings. Use the review action to inspect the relevant transaction and its explanation.
 
 ---
 
-## 5. Activity
+## Training the model
 
-The **Activity** page contains previously screened transactions.
-
-Users can review transaction records and inspect individual details.
-
----
-
-## 6. Alerts
-
-The **Alerts** page provides high-risk transactions for analyst review.
-
-An alert can lead to the complete transaction and explanation view.
-
----
-
-## 7. Model Performance
-
-The **Model Performance** page provides model-governance information including:
-
-* Current model version.
-* Evaluation metrics.
-* Confusion matrix.
-* Threshold information.
-* Model metadata.
-
----
-
-## 8. Explainability
-
-The **Explainability** page provides:
-
-### Global SHAP
-
-Overall model feature importance.
-
-### Local SHAP
-
-Explanation for a specific stored transaction.
-
----
-
-# Batch CSV Format
-
-Batch screening accepts anonymized transactions.
-
-## Required Columns
-
-```text
-Time
-V1
-V2
-V3
-...
-V28
-Amount
-```
-
-## Optional Columns
-
-```text
-Class
-external_ref
-occurred_at
-```
-
-Example:
-
-```csv
-Time,V1,V2,V3,V4,...,V28,Amount,Class
-0.0,-1.3598,-0.0728,2.5363,1.3781,...,0.3677,248.90,1
-5.0,1.1919,0.2661,0.1665,0.4482,...,-0.1990,88.99,0
-```
-
-## Batch Processing Flow
-
-```text
-Upload CSV
-    ↓
-Validate File
-    ↓
-Validate Columns
-    ↓
-Create Batch Job
-    ↓
-Queue Processing
-    ↓
-Process Transactions
-    ↓
-Update Progress
-    ↓
-Generate Results
-    ↓
-Download Results CSV
-```
-
----
-
-# Machine Learning Pipeline
-
-VEYRA uses a structured machine-learning pipeline.
-
-```text
-Raw Dataset
-     ↓
-Data Validation
-     ↓
-EDA
-     ↓
-Feature Engineering
-     ↓
-Baseline Model
-     ↓
-XGBoost
-     ↓
-Threshold Optimization
-     ↓
-Model Evaluation
-     ↓
-SHAP Explainability
-     ↓
-Versioned Artifact
-     ↓
-API Inference
-```
-
----
-
-## Feature Engineering
-
-Time can be transformed into cyclical features such as:
-
-```text
-Hour_sin
-Hour_cos
-```
-
-Amount can also be transformed using:
-
-```text
-Amount_log1p
-```
-
-The important goal is that the same preprocessing logic is reused at inference time.
-
----
-
-# Training the Model
-
-Move into the backend:
+The training entry point is:
 
 ```bash
 cd backend
-```
-
-Run the complete training workflow:
-
-```bash
 python train_model.py
 ```
 
-Fast training options:
+Common options include:
 
 ```bash
-python train_model.py --no-tuning
-```
-
-Skip SHAP:
-
-```bash
+python train_model.py --no-tuning --skip-eda
 python train_model.py --no-shap
+python train_model.py --fake --no-tuning --no-shap --skip-eda
+python train_model.py --target pr_auc
 ```
 
-Skip EDA:
+The pipeline generally performs the following steps:
+
+1. Load or retrieve the documented anonymized dataset.
+2. Validate schema and data quality.
+3. Prepare a reusable preprocessing pipeline.
+4. Train a baseline model.
+5. Train and evaluate XGBoost.
+6. Optimize or select a decision threshold.
+7. Calculate held-out evaluation metrics.
+8. Generate SHAP information.
+9. Write a timestamped artifact under **`artifacts/models/`**.
+
+The API loads the latest compatible artifact unless **`MODEL_VERSION`** is set. Keep model artifacts and their metadata together; the model, preprocessing assumptions, metrics, threshold configuration, and explainability files must remain consistent.
+
+---
+
+## Dataset and artifacts
+
+The intended dataset is the anonymized European credit-card fraud dataset commonly distributed through the ULB/Kaggle credit-card-fraud dataset.
+
+The expected feature structure is:
+
+```text
+Time, V1, V2, ..., V28, Amount, Class
+```
+
+The dataset contains anonymized PCA-style features. It does not expose direct merchant, card-number, CVV, or personally identifying information.
+
+Generated artifacts may include:
+
+* Trained model file.
+* Preprocessing information.
+* **`metadata.json`**.
+* **`metrics.json`**.
+* **`thresholds.json`**.
+* Risk-band configuration.
+* Global SHAP feature information.
+
+The dataset is highly imbalanced. Accuracy alone is not a sufficient measure of quality; evaluate precision, recall, F1, PR-AUC, ROC-AUC, threshold behaviour, and operational false-positive volume together.
+
+---
+
+## API overview
+
+The API is versioned under **`/api/v1`**. Interactive documentation is available at **`/docs`** when the backend is running.
+
+| **Method** | **Endpoint**                                | **Purpose**                      |
+| ---------- | ------------------------------------------- | -------------------------------- |
+| **`GET`**  | **`/api/v1/health`**                        | Health and readiness information |
+| **`POST`** | **`/api/v1/auth/register`**                 | Register an account              |
+| **`POST`** | **`/api/v1/auth/login`**                    | Authenticate and issue tokens    |
+| **`POST`** | **`/api/v1/auth/refresh`**                  | Refresh tokens                   |
+| **`POST`** | **`/api/v1/auth/logout`**                   | Revoke a refresh token           |
+| **`GET`**  | **`/api/v1/auth/me`**                       | Return the current user          |
+| **`POST`** | **`/api/v1/screen`**                        | Screen one transaction           |
+| **`POST`** | **`/api/v1/batch`**                         | Create a batch job               |
+| **`GET`**  | **`/api/v1/batch`**                         | List batch jobs                  |
+| **`GET`**  | **`/api/v1/batch/{job_id}`**                | Read job status and progress     |
+| **`GET`**  | **`/api/v1/batch/{job_id}/download`**       | Download batch results           |
+| **`GET`**  | **`/api/v1/transactions`**                  | Query the transaction ledger     |
+| **`GET`**  | **`/api/v1/transactions/summary`**          | Read summary metrics and trends  |
+| **`GET`**  | **`/api/v1/transactions/{id}`**             | Read transaction detail          |
+| **`GET`**  | **`/api/v1/transactions/{id}/explanation`** | Read local explanation           |
+| **`GET`**  | **`/api/v1/alerts`**                        | Query high-risk alerts           |
+| **`GET`**  | **`/api/v1/model/info`**                    | Read active model metadata       |
+| **`GET`**  | **`/api/v1/model/metrics`**                 | Read model evaluation metrics    |
+| **`GET`**  | **`/api/v1/model/global-explanation`**      | Read global SHAP information     |
+| **`POST`** | **`/api/v1/model/retrain`**                 | Queue administrator retraining   |
+
+Example request after obtaining an access token:
 
 ```bash
-python train_model.py --skip-eda
-```
-
-Use synthetic data for a smoke test:
-
-```bash
-python train_model.py --fake
-```
-
-Fast synthetic smoke test:
-
-```bash
-python train_model.py --fake --no-tuning
-```
-
----
-
-## Training Process
-
-### Step 1 — Data Loading
-
-Loads the credit-card fraud dataset.
-
-### Step 2 — EDA
-
-Analyzes:
-
-* Class imbalance.
-* Distribution of features.
-* Transaction amounts.
-* Time behavior.
-* Data quality.
-
-### Step 3 — Baseline
-
-A Logistic Regression model is used as a baseline.
-
-### Step 4 — XGBoost
-
-XGBoost is trained as the primary model.
-
-### Step 5 — Hyperparameter Optimization
-
-The training workflow can use randomized parameter search.
-
-### Step 6 — Threshold Optimization
-
-The operating threshold can be optimized according to the configured strategy.
-
-### Step 7 — Evaluation
-
-The model is evaluated using:
-
-* Precision.
-* Recall.
-* F1.
-* PR-AUC.
-* ROC-AUC.
-* Confusion matrix.
-
-### Step 8 — SHAP
-
-SHAP TreeExplainer is used for model explanation.
-
-### Step 9 — Artifact Creation
-
-The trained model and supporting metadata are stored as a versioned artifact.
-
----
-
-# Model Artifacts
-
-Generated artifacts are stored under:
-
-```text
-artifacts/models/
-```
-
-A model artifact can contain:
-
-```text
-Model
-Preprocessor
-Threshold
-Model version
-Feature metadata
-Evaluation metadata
-```
-
-Example structure:
-
-```text
-artifacts/
-└── models/
-    └── CCDFS-XGB-<timestamp>/
-        ├── model
-        ├── preprocessor
-        ├── metadata
-        └── threshold information
-```
-
-The API loads the newest artifact unless a specific `MODEL_VERSION` is configured.
-
----
-
-# Dataset
-
-The project uses the widely used anonymized credit-card fraud dataset associated with the **ULB Machine Learning Group / Kaggle**.
-
-The dataset contains approximately:
-
-```text
-284,807 transactions
-492 fraudulent transactions
-~0.172% fraud
-```
-
-Main fields include:
-
-```text
-Time
-V1 ... V28
-Amount
-Class
-```
-
-The `Class` column represents the fraud label during supervised training/evaluation.
-
----
-
-## Privacy
-
-The dataset is anonymized and PCA-transformed.
-
-VEYRA is designed to operate on anonymized features rather than actual payment-card credentials.
-
-Do not upload or store:
-
-```text
-Card numbers
-CVVs
-PINs
-Payment credentials
-Sensitive cardholder information
-```
-
----
-
-# API Reference
-
-Base path:
-
-```text
-/api/v1
-```
-
-Interactive Swagger documentation:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
-OpenAPI specification:
-
-```text
-http://127.0.0.1:8000/api/v1/openapi.json
-```
-
----
-
-## Health
-
-```http
-GET /api/v1/health
-```
-
-Provides liveness/readiness information.
-
----
-
-## Authentication
-
-```http
-POST /api/v1/auth/register
-POST /api/v1/auth/login
-POST /api/v1/auth/refresh
-POST /api/v1/auth/logout
-GET  /api/v1/auth/me
-GET  /api/v1/auth/ping
-```
-
----
-
-## Single Screening
-
-```http
-POST /api/v1/screen
-```
-
-Screens one transaction using:
-
-* ML model.
-* Deterministic rules.
-* SHAP explanation.
-
----
-
-## Batch Screening
-
-```http
-POST /api/v1/screen/batch
-POST /api/v1/batch
-GET  /api/v1/batch
-GET  /api/v1/batch/{job_id}
-GET  /api/v1/batch/{job_id}/download
-```
-
----
-
-## Transactions
-
-```http
-GET /api/v1/transactions
-GET /api/v1/transactions/summary
-GET /api/v1/transactions/{transaction_id}
-GET /api/v1/transactions/{transaction_id}/explanation
-```
-
----
-
-## Model
-
-```http
-GET  /api/v1/model/info
-GET  /api/v1/model/metrics
-GET  /api/v1/model/global-explanation
-POST /api/v1/model/retrain
-```
-
-The retraining operation is intended for administrators.
-
----
-
-## Alerts
-
-```http
-GET /api/v1/alerts
-```
-
-Returns recent high-risk alerts for review.
-
----
-
-# Example API Request
-
-After obtaining an access token:
-
-```bash
-curl -X POST "http://localhost:8000/api/v1/screen" \
-  -H "Authorization: Bearer <access_token>" \
+curl -X POST http://localhost:8000/api/v1/screen \
+  -H "Authorization: Bearer <access-token>" \
   -H "Content-Type: application/json" \
   -d '{
     "amount": 4200.00,
@@ -1526,94 +818,24 @@ curl -X POST "http://localhost:8000/api/v1/screen" \
     "features": {
       "V1": 0.001,
       "V2": 0.87,
-      "V3": -1.2,
-      "V4": 0,
-      "V5": 0,
-      "V6": 0,
-      "V7": 0,
-      "V8": 0,
-      "V9": 0,
-      "V10": 0,
-      "V11": 0,
-      "V12": 0,
-      "V13": 0,
-      "V14": 0,
-      "V15": 0,
-      "V16": 0,
-      "V17": 0,
-      "V18": 0,
-      "V19": 0,
-      "V20": 0,
-      "V21": 0,
-      "V22": 0,
-      "V23": 0,
-      "V24": 0,
-      "V25": 0,
-      "V26": 0,
-      "V27": 0,
-      "V28": 0
+      "V3": -1.2
     }
   }'
 ```
 
-For the exact request and response schema, use:
-
-```text
-http://127.0.0.1:8000/docs
-```
+Use the Swagger UI to see the complete schema, required fields, authentication requirements, and response models.
 
 ---
 
-# Testing
+## Testing and verification
 
-## Backend
+Run the complete verification suite:
 
 ```bash
-cd backend
-pytest -q
+make test
 ```
 
-The backend tests cover areas including:
-
-* Schema validation.
-* Feature processing.
-* Model behavior.
-* Threshold logic.
-* SHAP.
-* Authentication.
-* API endpoints.
-* Batch functionality.
-
----
-
-## Frontend
-
-```bash
-cd frontend
-npm run test
-```
-
----
-
-## Type Checking
-
-```bash
-cd frontend
-npm run typecheck
-```
-
----
-
-## Production Build
-
-```bash
-cd frontend
-npm run build
-```
-
----
-
-## Complete Verification
+Run individual checks:
 
 ```bash
 cd backend
@@ -1625,428 +847,149 @@ npm run typecheck
 npm run build
 ```
 
+The current verified frontend baseline includes:
+
+* 48 Vitest tests passing.
+* TypeScript project typecheck passing.
+* Vite production build passing.
+
+The backend CI baseline includes:
+
+* 79 pytest tests passing.
+* Python byte-compilation.
+* Synthetic training smoke verification.
+* Alembic migration verification against scratch SQLite.
+
+GitHub Actions runs the backend and frontend checks on pushes and pull requests. Docker image build checks run after the application test jobs pass.
+
+When changing the frontend, verify at minimum:
+
+* Landing, login, and registration navigation.
+* Protected redirect behaviour.
+* Home Bento tile navigation.
+* Back to Home from every feature page.
+* Dynamic authenticated user name and initials.
+* No feature-page sidebar or feature-switching menu.
+* Dark and light theme persistence.
+* Desktop, tablet, and approximately 390px mobile layouts.
+* Real screening, SHAP, activity, alert, batch, and model flows.
+
 ---
 
-# Docker Compose
+## Frontend redesign notes
 
-The repository also provides Docker-based infrastructure.
+The redesign is intentionally a frontend architecture and visual-system change. It does not replace the scoring model or backend contracts.
 
-Typical services include:
+### Design principles
+
+* Premium, minimal, editorial fintech presentation.
+* Home as the only feature switcher.
+* Focused feature pages with one primary responsibility.
+* Solid functional surfaces instead of pervasive glassmorphism.
+* Restrained black, graphite, warm ivory, and champagne/gold brand accents.
+* Semantic green, amber, red, and blue states for safe, warning, fraud, and informational results.
+* Dynamic identity from authentication state rather than hardcoded developer details.
+* Complete dark/light theme coverage.
+* Motion kept subtle and compatible with **`prefers-reduced-motion`**.
+
+### Landing asset
+
+The active landing page uses:
 
 ```text
-postgres
-redis
-api
-worker
-frontend
+frontend/public/images/veyra-landing-background.png
 ```
 
-Start the stack:
+The image is decorative and contains no application text. VEYRA branding, tagline, CTA, sign-in link, and theme control are rendered by React so they remain responsive and accessible.
 
-```bash
-docker compose up -d
-```
-
-or:
-
-```bash
-make docker-up
-```
-
-Typical ports:
-
-| Service    |   Port |
-| ---------- | -----: |
-| PostgreSQL | `5432` |
-| Redis      | `6379` |
-| FastAPI    | `8000` |
-| Frontend   | `8080` |
-
-Docker is optional for basic local development because the application can run with SQLite.
+The older MP4 remains in **`frontend/public/videos/`** for repository compatibility, but the active landing page does not render, preload, or depend on it.
 
 ---
 
-# Background Video
+## Responsible AI and limitations
 
-VEYRA uses a decorative background video:
+VEYRA is a prototype and educational/portfolio system. It should not be used as a production banking decision system without substantial additional validation, security review, monitoring, and compliance work.
+
+Important limitations:
+
+* A screening result is not proof of fraud.
+* The application provides analyst decision support; it does not automatically block transactions.
+* The training data is anonymized and historical, so fraud behaviour may have changed over time.
+* PCA features such as **`V14`** do not have a direct human meaning like a merchant category or cardholder attribute.
+* SHAP describes how the model arrived at a prediction; it does not establish causality.
+* Threshold selection is an operational/business decision involving false-positive and false-negative costs.
+* Class imbalance means accuracy can be misleading.
+* Model drift, data drift, calibration, fairness, and performance across relevant populations require ongoing monitoring.
+* Development JWT secrets and seeded credentials must never be reused in production.
+* Production deployments need TLS, secret management, restricted CORS, least-privilege database roles, durable queue configuration, monitoring, backups, and security hardening.
+
+---
+
+## Contributing
+
+Contributions and improvements are welcome.
+
+1. Fork the repository.
+
+2. Create a focused branch:
+
+   ```bash
+   git checkout -b feature/your-change
+   ```
+
+3. Preserve existing API contracts unless a change is intentionally versioned.
+
+4. Reuse existing frontend components and shells instead of duplicating patterns.
+
+5. Do not fabricate model outputs, metrics, alerts, or transaction data.
+
+6. Add or update tests for behaviour you change.
+
+7. Run backend tests, frontend tests, typecheck, and build before opening a pull request.
+
+8. Document any configuration or migration changes.
+
+9. Open a pull request explaining the design/technical decision and verification performed.
+
+For frontend work specifically:
+
+* Keep feature pages free of sidebar and feature-switching navigation.
+* Keep the authenticated user identity dynamic.
+* Keep dark and light themes complete.
+* Keep the real API integrations connected.
+* Respect keyboard navigation, semantic labels, contrast, and reduced-motion preferences.
+
+Use concise imperative commit messages such as:
 
 ```text
-frontend/public/videos/credit-card-fraud-background.mp4
-```
-
-The video is purely visual.
-
-It is configured to be:
-
-* Muted.
-* Looping.
-* Inline.
-* Non-interactive.
-* Behind the application UI.
-
-The application does **not** depend on the video.
-
-If the video is unavailable, the system should still operate normally.
-
-The interface also supports reduced-motion behavior.
-
----
-
-# Security
-
-## Authentication
-
-JWT authentication is used for protected API operations.
-
-The system supports:
-
-```text
-Access Token
-Refresh Token
-Token Rotation
-Token Revocation
+add Bento Home launcher
+fix batch result empty state
+make model chart theme-aware
 ```
 
 ---
 
-## Password Security
+## License
 
-Passwords are stored using secure password hashing through an Argon2-capable implementation.
+This project is released under the [**MIT License**](LICENSE).
 
----
-
-## Role-Based Access
-
-The system supports:
-
-```text
-analyst
-admin
-```
-
-Administrative functionality, such as retraining, is restricted to authorized users.
+Copyright © 2026 Varshith Reddy.
 
 ---
 
-## Rate Limiting
-
-Rate limiting is supported for sensitive endpoints such as:
-
-```text
-Login
-Screening
-```
-
-This helps reduce abuse and excessive requests.
-
----
-
-## Environment Secrets
-
-Secrets should never be committed directly to Git.
-
-In particular:
-
-```text
-JWT_SECRET
-DATABASE credentials
-Redis credentials
-API credentials
-```
-
-should be managed through environment configuration or deployment secret management.
-
----
-
-# Responsible AI and Limitations
-
-VEYRA is an **educational and prototype fraud-screening system**.
-
-## Screening Is Not a Banking Decision
-
-The output is intended to support human review.
-
-The system does not independently:
-
-* Approve payments.
-* Decline payments.
-* Freeze accounts.
-* Block cards.
-* Make final financial decisions.
-
----
-
-## Historical Data
-
-The model is trained using an anonymized historical dataset.
-
-Fraud behavior changes over time, so historical evaluation results should not be interpreted as guaranteed performance against future real-world fraud.
-
----
-
-## SHAP Does Not Explain Reality
-
-SHAP explains the behavior of the trained model.
-
-It does not prove that a feature is a real-world cause of fraud.
-
-The PCA features also do not have direct business meanings.
-
----
-
-## Threshold Trade-offs
-
-Changing the fraud threshold affects the balance between:
-
-```text
-False Positives
-```
-
-and:
-
-```text
-False Negatives
-```
-
-A stricter threshold can reduce false alarms but potentially miss more fraud, while a more permissive threshold can detect more suspicious transactions at the cost of additional false positives.
-
----
-
-## Synthetic Data
-
-The synthetic-data training path exists for:
-
-* Testing.
-* Development.
-* CI.
-* Demonstrations.
-
-It should not be treated as evidence of actual model performance.
-
----
-
-# Development Workflow
-
-A recommended local workflow is:
-
-```text
-1. Activate Python environment
-2. Start FastAPI backend
-3. Start Vite frontend
-4. Sign in
-5. Open Overview
-6. Screen a transaction
-7. Inspect the result
-8. Review Activity
-9. Review Alerts
-10. Open Model Performance
-11. Open Explainability
-12. Run tests
-13. Build frontend
-```
-
-For backend smoke testing:
-
-```bash
-cd backend
-python train_model.py --fake --no-tuning
-pytest -q
-```
-
-For frontend verification:
-
-```bash
-cd frontend
-npm run test
-npm run typecheck
-npm run build
-```
-
----
-
-# Contributing
-
-Contributions are welcome.
-
-## 1. Fork the Repository
-
-Create your own fork on GitHub.
-
-## 2. Create a Feature Branch
-
-```bash
-git checkout -b feature/your-change
-```
-
-## 3. Make Your Changes
-
-Keep related changes together and follow the existing project structure.
-
-## 4. Update Tests
-
-Backend changes should include appropriate tests under:
-
-```text
-backend/tests/
-```
-
-Frontend changes should include relevant tests under the frontend source tree.
-
-## 5. Verify the Project
-
-Run:
-
-```bash
-cd backend
-pytest -q
-```
-
-and:
-
-```bash
-cd ../frontend
-npm run test
-npm run typecheck
-npm run build
-```
-
-## 6. Commit
-
-Use clear imperative commit messages.
-
-Examples:
-
-```text
-add transaction explanation view
-fix batch CSV validation
-improve screening form
-update model metrics page
-```
-
-## 7. Open a Pull Request
-
-Describe:
-
-* What changed.
-* Why it changed.
-* What was tested.
-* Any configuration changes required.
-
----
-
-# API Contract Guidelines
-
-The backend and frontend depend on shared API contracts.
-
-When changing a request or response schema, update the related layers together:
-
-```text
-Backend Pydantic schema
-        ↓
-API route/service
-        ↓
-Frontend TypeScript types
-        ↓
-API hooks
-        ↓
-UI components
-        ↓
-Tests
-```
-
-This helps prevent frontend/backend mismatches.
-
----
-
-# Project Status
-
-VEYRA currently represents a complete end-to-end software prototype containing:
-
-```text
-React Frontend
-       +
-FastAPI Backend
-       +
-Authentication
-       +
-Database
-       +
-Machine Learning
-       +
-XGBoost
-       +
-SHAP Explainability
-       +
-Rule Engine
-       +
-Transaction History
-       +
-Alerts
-       +
-Batch Processing
-       +
-Model Governance
-       +
-Automated Testing
-```
-
-The project demonstrates not only a fraud-classification model, but also how that model can be integrated into an explainable analyst workflow.
-
----
-
-# License
-
-This project is licensed under the **MIT License**.
-
-See the repository's:
-
-```text
-LICENSE
-```
-
-file for the complete license text.
-
----
-
-# Author
-
-## Varshith Reddy
-
-Developer of **VEYRA — Credit Card Fraud Detection System**.
-
-The project was developed as a full-stack machine-learning application combining:
-
-**AI + Machine Learning + Explainability + Backend Engineering + Frontend Engineering + Data Analytics**
-
----
-
-## Final Project Summary
-
-```text
-VEYRA
-│
-├── Detect
-│   └── XGBoost fraud prediction
-│
-├── Explain
-│   ├── SHAP
-│   └── Rule engine
-│
-├── Review
-│   ├── Activity
-│   └── Alerts
-│
-├── Monitor
-│   ├── Dashboard
-│   ├── Model Performance
-│   └── Explainability
-│
-└── Operate
-    ├── Authentication
-    ├── Database
-    ├── Batch Processing
-    ├── APIs
-    └── Testing
-```
-
-> **VEYRA — Intelligent transaction screening, explanation, and risk analysis.**
+## Project status
+
+VEYRA is an actively developed portfolio/internship project demonstrating:
+
+* Imbalanced fraud classification.
+* XGBoost model development.
+* Threshold evaluation.
+* SHAP explainability.
+* Deterministic rules.
+* JWT-secured APIs.
+* Persistent transaction workflows.
+* Celery batch processing.
+* React product design and frontend architecture.
+* Automated backend and frontend verification.
+
+The project is intended to make the full path from **data → model → explanation → analyst workflow** understandable, testable, and extendable.

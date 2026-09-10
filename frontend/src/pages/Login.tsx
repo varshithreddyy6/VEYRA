@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
+import { ThemeToggle } from "@/components/navigation/ThemeToggle";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, Eye, EyeOff, Lock, Mail } from "lucide-react";
@@ -18,7 +20,7 @@ export default function Login() {
   const status = useAuthStore((s) => s.status);
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as { from?: string } | null)?.from ?? "/overview";
+  const from = (location.state as { from?: string } | null)?.from ?? "/home";
   const [serverError, setServerError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -37,7 +39,8 @@ export default function Login() {
   };
 
   return (
-    <div className="app-atmosphere relative flex min-h-screen items-center justify-center px-4 py-10">
+    <div className="auth-shell relative flex min-h-screen items-center justify-center px-4 py-10">
+      <div className="auth-corner"><Link to="/" className="back-home"><ArrowLeft className="h-4 w-4" /> Back</Link><ThemeToggle /></div>
       <div className="relative z-10 w-full max-w-[420px] animate-fadeUp">
         <div className="mb-9 flex flex-col items-center text-center">
           <VeyraMark size={48} />
