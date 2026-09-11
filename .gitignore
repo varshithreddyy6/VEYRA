@@ -1,0 +1,68 @@
+# ── Python ────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# ── Environment & secrets ─────────────────────────────────────────────────
+.env
+.env.local
+.env.production
+*.pem
+*.key
+*.crt
+
+# ── Datasets (never commit the raw credit card data) ──────────────────────
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+!data/README.md
+
+# ── Model artifacts (regenerate via `make train`) ─────────────────────────
+artifacts/models/*
+!artifacts/models/.gitkeep
+artifacts/preprocessing/*
+!artifacts/preprocessing/.gitkeep
+artifacts/metrics/*
+!artifacts/metrics/.gitkeep
+artifacts/explainability/*
+!artifacts/explainability/.gitkeep
+
+# ── Generated results ─────────────────────────────────────────────────────
+results/figures/*
+!results/figures/.gitkeep
+results/reports/*
+!results/reports/.gitkeep
+results/predictions/*
+!results/predictions/.gitkeep
+
+# ── Node / frontend ───────────────────────────────────────────────────────
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.local
+*.tsbuildinfo
+
+# ── Tooling / OS ──────────────────────────────────────────────────────────
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+celerybeat-schedule
+*.log
+
+# ── Docker volumes ────────────────────────────────────────────────────────
+pgdata/
+redisdata/
